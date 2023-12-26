@@ -9,6 +9,9 @@
 *.dll
 *.so
 *.dylib
+list.txt
+live.txt
+proxyChecker
 
 # Test binary, built with `go test -c`
 *.test

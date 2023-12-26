@@ -2,22 +2,21 @@ package checker
 
 import (
 	"fmt"
+	"io"
 	"net"
-	"sync"
 	"time"
 )
 
-func IsSocks5(addr net.TCPAddr, wg *sync.WaitGroup, semaphore chan struct{}) {
+func IsSocks5(addr net.TCPAddr, semaphore chan struct{}, dialTimeout, readTimeout time.Duration, output io.Writer) {
 	semaphore <- struct{}{}
-	defer wg.Done()
-	dialer := net.Dialer{Timeout: 5 * time.Second} // Set a timeout of 5 seconds
+	dialer := net.Dialer{Timeout: dialTimeout} // Set a timeout of 5 seconds
 	conn, err := dialer.Dial("tcp", addr.String())
+	defer conn.Close()
 	if err != nil {
 		<-semaphore
 		return
 	}
-	defer conn.Close()
-	conn.SetDeadline(time.Now().Add(10 * time.Second))
+	conn.SetDeadline(time.Now().Add(readTimeout))
 	greeting := []byte{0x05, 0x01, 0x00}
 	if _, err := conn.Write(greeting); err != nil {
 		<-semaphore
@@ -29,7 +28,7 @@ func IsSocks5(addr net.TCPAddr, wg *sync.WaitGroup, semaphore chan struct{}) {
 		return
 	}
 	if response[0] == 0x05 && response[1] != 0xFF {
-		fmt.Println("socks5://" + addr.String())
+		fmt.Fprintf(output, "socks5://%s\n", addr.String())
 	}
 	<-semaphore
 	return
