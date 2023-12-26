@@ -11,11 +11,11 @@ func IsSocks5(addr net.TCPAddr, semaphore chan struct{}, dialTimeout, readTimeou
 	semaphore <- struct{}{}
 	dialer := net.Dialer{Timeout: dialTimeout} // Set a timeout of 5 seconds
 	conn, err := dialer.Dial("tcp", addr.String())
-	defer conn.Close()
 	if err != nil {
 		<-semaphore
 		return
 	}
+	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(readTimeout))
 	greeting := []byte{0x05, 0x01, 0x00}
 	if _, err := conn.Write(greeting); err != nil {
